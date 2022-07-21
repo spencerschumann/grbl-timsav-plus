@@ -1,4 +1,25 @@
-# grbl-1-1h-servo
+# GRBL TimSav+
+
+This is a special version of grbl 1.1h with servo support and modifications to support the
+TimSav+ CNC machine.
+
+* Spindle PWM prescaler set to 1/256, which results in a faster 244 Hz refresh rate, but also greatly
+  improves the resolution for the spindle speed (about 65 steps)
+* Smooth, gradual spindle speed changes to avoid mechanical and electrical jolts and surges
+* Homing cycle enabled
+* Normally closed endstop switches
+
+See also https://github.com/spencerschumann/BLHeli_CNC for a customized version of BLHeli_S
+for the spindle motor ESC that can be used together with this project.
+
+Spencer Schumann<br>
+July 2022
+
+---
+## grbl-1-1h-servo README below:
+---
+
+## grbl-1-1h-servo
 
 This is a special version of [grbl 1.1h version](https://github.com/gnea/grbl/releases/tag/v1.1h.20190825) with servo support.
 
@@ -20,8 +41,6 @@ For more information about configuring grbl you can read the [official wiki](htt
 
 
 Thanks to all these guys that make this work. I don't have credits for it! ❤️
-
-
 
 -------------
 

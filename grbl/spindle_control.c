@@ -21,13 +21,20 @@
 
 #include "grbl.h"
 
-#define RC_SERVO_SHORT      15      // set min pulse duration to (7 = 0.5ms, 15 = 1.03ms, 20=1.40ms)    // RC Servo
-#define RC_SERVO_LONG       31      // set max pulse duration (38 = 2.49ms, 31 = 2.05ms)                // RC Servo
-#define RC_SERVO_RANGE      (RC_SERVO_LONG-RC_SERVO_SHORT)                                              // RC Servo
-// #define RC_SERVO_INVERT  1       // Uncomment to invert servo direction                              // RC Servo
+#define RC_SERVO_SHORT      60      // set min pulse duration (60 = 0.964ms)    // RC Servo
+#define RC_SERVO_LONG       125     // set max pulse duration (125 = 2.008ms)   // RC Servo
+#define RC_SERVO_RANGE      (RC_SERVO_LONG-RC_SERVO_SHORT)                      // RC Servo
+// #define RC_SERVO_INVERT  1       // Uncomment to invert servo direction      // RC Servo
 
 #ifdef VARIABLE_SPINDLE
   static float pwm_gradient; // Precalulated value to speed up rpm to PWM conversions.
+
+  static uint16_t current_pwm = RC_SERVO_SHORT << 8;
+  static uint16_t target_pwm = RC_SERVO_SHORT << 8;
+
+  // Based on 1/64 prescaler, resulting in ~4ms between pulses, which is ~250 pulses per second.
+  // This is expressed as an 8+8 bit fixed point number.
+  #define PWM_MAX_CHANGE_PER_PULSE 30
 #endif
 
 
@@ -54,7 +61,28 @@ void spindle_init()
     #endif
   #endif
 
+  SPINDLE_OCR_REGISTER = RC_SERVO_SHORT;
+
   spindle_stop();
+}
+
+
+ISR(TIMER2_OVF_vect) {
+  if (current_pwm == target_pwm) {
+    return;
+  }
+
+  if (current_pwm > target_pwm) {
+    uint16_t delta = current_pwm - target_pwm;
+    if (delta > PWM_MAX_CHANGE_PER_PULSE) delta = PWM_MAX_CHANGE_PER_PULSE;
+    current_pwm -= delta;
+  } else {
+    uint16_t delta = target_pwm - current_pwm;
+    if (delta > PWM_MAX_CHANGE_PER_PULSE) delta = PWM_MAX_CHANGE_PER_PULSE;
+    current_pwm += delta;
+  }
+
+  SPINDLE_OCR_REGISTER = current_pwm >> 8;
 }
 
 
@@ -120,10 +148,13 @@ void spindle_stop()
   if (!(settings.flags & BITFLAG_LASER_MODE)) {                                                         // RC Servo
   #ifdef RC_SERVO_SHORT                                                                                 // RC Servo
     SPINDLE_TCCRA_REGISTER |= (1<<SPINDLE_COMB_BIT); // Ensure PWM output is enabled.                   // RC Servo
+    TIMSK2 |= 1 << TOIE2; // enable timer overflow interrupt
     #ifdef RC_SERVO_INVERT                                                                              // RC Servo
-      SPINDLE_OCR_REGISTER = RC_SERVO_LONG;                                                             // RC Servo
+      //SPINDLE_OCR_REGISTER = RC_SERVO_LONG;                                                             // RC Servo
+      target_pwm = RC_SERVO_LONG << 8;
     #else                                                                                               // RC Servo
-      SPINDLE_OCR_REGISTER = RC_SERVO_SHORT;                                                            // RC Servo
+      //SPINDLE_OCR_REGISTER = RC_SERVO_SHORT;                                                            // RC Servo
+      target_pwm = RC_SERVO_SHORT << 8;
     #endif                                                                                              // RC Servo
   #endif                                                                                                // RC Servo
   }                                                                                                     // RC Servo
@@ -135,7 +166,8 @@ void spindle_stop()
   // and stepper ISR. Keep routine small and efficient.
   void spindle_set_speed(uint8_t pwm_value)
   {
-    SPINDLE_OCR_REGISTER = pwm_value; // Set PWM output level.
+    //SPINDLE_OCR_REGISTER = pwm_value; // Set PWM output level.
+    target_pwm = pwm_value << 8;
     #ifdef SPINDLE_ENABLE_OFF_WITH_ZERO_SPEED
       if (pwm_value == SPINDLE_PWM_OFF_VALUE) {
         spindle_stop();
