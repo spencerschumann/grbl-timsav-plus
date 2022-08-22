@@ -297,6 +297,26 @@ void plan_update_velocity_profile_parameters()
   pl.previous_nominal_speed = prev_nominal_speed; // Update prev nominal speed for next incoming block.
 }
 
+#ifdef XY_SKEW_COMPENSATION
+  // Calculate and return the adjusted y target value based on the xy skew compensation.
+  static float xy_skew_adjusted_y(float *target)
+  {
+    // Assume the origin is at the front left corner of the machine. This assumption is correct
+    // for the TimSav, and the code below may need to be adjusted if you're using something else.
+
+    // Always adjust in the positive Y direction to avoid overrunning the Y axis endstop switch
+    // placed at the origin. Note that this risks overrun at the Y max value; be sure to allow
+    // enough extra travel at Y max to account for the maximum Y adjustment.
+    float x_delta;
+    if (settings.xy_skew_compensation > 0) {
+      x_delta = target[X_AXIS] + (-settings.max_travel[X_AXIS]);
+    } else {
+      x_delta = target[X_AXIS];
+    }
+    
+    return target[Y_AXIS] + x_delta * settings.xy_skew_compensation;   
+  }
+#endif
 
 /* Add a new linear movement to the buffer. target[N_AXIS] is the signed, absolute target position
    in millimeters. Feed rate specifies the speed of the motion. If feed rate is inverted, the feed
@@ -366,7 +386,14 @@ uint8_t plan_buffer_line(float *target, plan_line_data_t *pl_data)
         delta_mm = (target_steps[idx] - position_steps[idx])/settings.steps_per_mm[idx];
       }
     #else
-      target_steps[idx] = lround(target[idx]*settings.steps_per_mm[idx]);
+      #ifdef XY_SKEW_COMPENSATION
+      if (idx == Y_AXIS && settings.xy_skew_compensation != 0 && !(block->condition & PL_COND_FLAG_SYSTEM_MOTION)) {
+        target_steps[idx] = lround(xy_skew_adjusted_y(target)*settings.steps_per_mm[idx]);
+      } else
+      #endif
+      {
+        target_steps[idx] = lround(target[idx]*settings.steps_per_mm[idx]);
+      }
       block->steps[idx] = labs(target_steps[idx]-position_steps[idx]);
       block->step_event_count = max(block->step_event_count, block->steps[idx]);
       delta_mm = (target_steps[idx] - position_steps[idx])/settings.steps_per_mm[idx];

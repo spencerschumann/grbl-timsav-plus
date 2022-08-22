@@ -129,6 +129,13 @@
 // define to force Grbl to always set the machine origin at the homed location despite switch orientation.
 // #define HOMING_FORCE_SET_ORIGIN // Uncomment to enable.
 
+// Simple adjustment for X/Y axis skew. This is useful for machines where the X/Y axes are difficult
+// to align perfectly. By adjusting just the Y coordinates based on the X coordinate and this adjustment
+// factor, the added processing overhead is minimized. Although this correction could be handled
+// either while generating gcode or by a postprocessor, handling it here avoids needing to apply this
+// correction in all the various tools that might be used to produce the gcode.
+#define XY_SKEW_COMPENSATION
+
 // Number of blocks Grbl executes upon startup. These blocks are stored in EEPROM, where the size
 // and addresses are defined in settings.h. With the current settings, up to 2 startup blocks may
 // be stored and executed in order. These startup blocks would typically be used to set the g-code

@@ -289,7 +289,7 @@ void system_flag_wco_change()
 // Returns machine position of axis 'idx'. Must be sent a 'step' array.
 // NOTE: If motor steps and machine position are not in the same coordinate frame, this function
 //   serves as a central place to compute the transformation.
-float system_convert_axis_steps_to_mpos(int32_t *steps, uint8_t idx)
+static float system_convert_axis_steps_to_mpos(int32_t *steps, uint8_t idx, bool absolute)
 {
   float pos;
   #ifdef COREXY
@@ -307,12 +307,23 @@ float system_convert_axis_steps_to_mpos(int32_t *steps, uint8_t idx)
 }
 
 
-void system_convert_array_steps_to_mpos(float *position, int32_t *steps)
+void system_convert_array_steps_to_mpos(float *position, int32_t *steps, bool absolute)
 {
   uint8_t idx;
   for (idx=0; idx<N_AXIS; idx++) {
-    position[idx] = system_convert_axis_steps_to_mpos(steps, idx);
+    position[idx] = system_convert_axis_steps_to_mpos(steps, idx, absolute);
   }
+
+  #ifdef XY_SKEW_COMPENSATION
+    if (!absolute && settings.xy_skew_compensation != 0) {
+      float x_delta = position[X_AXIS];
+      if (settings.xy_skew_compensation > 0) {
+        x_delta += -settings.max_travel[X_AXIS];
+      }
+      position[Y_AXIS] -= x_delta * settings.xy_skew_compensation;
+    }
+  #endif
+
   return;
 }
 

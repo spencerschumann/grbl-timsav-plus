@@ -208,10 +208,17 @@ void limits_go_home(uint8_t cycle_mask)
   bool approach = true;
   float homing_rate = settings.homing_seek_rate;
 
+  #ifdef XY_SKEW_COMPENSATION
+    float xy_skew_y_offset = 0.0;
+    if (settings.xy_skew_compensation < 0) {
+      xy_skew_y_offset = settings.max_travel[X_AXIS] * settings.xy_skew_compensation;
+    }
+  #endif
+
   uint8_t limit_state, axislock, n_active_axis;
   do {
 
-    system_convert_array_steps_to_mpos(target,sys_position);
+    system_convert_array_steps_to_mpos(target,sys_position,1);
 
     // Initialize and declare variables needed for homing routine.
     axislock = 0;
@@ -248,6 +255,14 @@ void limits_go_home(uint8_t cycle_mask)
           if (approach) { target[idx] = max_travel; }
           else { target[idx] = -max_travel; }
         }
+
+        #ifdef XY_SKEW_COMPENSATION
+          // Extra skew compensation backoff on Y for the final cycle
+          if (idx == Y_AXIS && n_cycle == 0) {
+            target[idx] += xy_skew_y_offset;
+          }
+        #endif
+
         // Apply axislock to the step port pins active in this cycle.
         axislock |= step_pin[idx];
         #ifdef ENABLE_DUAL_AXIS
@@ -381,6 +396,11 @@ void limits_go_home(uint8_t cycle_mask)
         } else {
           set_axis_position = lround(-settings.homing_pulloff*settings.steps_per_mm[idx]);
         }
+        #ifdef XY_SKEW_COMPENSATION
+          if (idx == Y_AXIS) {
+            set_axis_position += lround(xy_skew_y_offset*settings.steps_per_mm[idx]);
+          }
+        #endif
       #endif
 
       #ifdef COREXY

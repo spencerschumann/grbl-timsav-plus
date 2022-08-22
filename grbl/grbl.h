@@ -86,6 +86,18 @@
   #endif
 #endif
 
+#if defined(XY_SKEW_COMPENSATION)
+  #if defined(HOMING_FORCE_SET_ORIGIN)
+    #error "HOMING_FORCE_SET_ORIGIN is not supported with XY_SKEW_COMPENSATION at this time."
+  #endif
+  #if defined(COREXY)
+    #error "COREXY is not supported with XY_SKEW_COMPENSATION at this time."
+  #endif
+  #if defined(ENABLE_DUAL_AXIS)
+    #error "ENABLE_DUAL_AXIS is not supported with XY_SKEW_COMPENSATION at this time."
+  #endif
+#endif
+
 #if defined(ENABLE_PARKING_OVERRIDE_CONTROL)
   #if !defined(PARKING_ENABLE)
     #error "ENABLE_PARKING_OVERRIDE_CONTROL must be enabled with PARKING_ENABLE."

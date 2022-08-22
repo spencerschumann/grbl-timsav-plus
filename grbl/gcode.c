@@ -54,7 +54,7 @@ void gc_init()
 // limit pull-off routines.
 void gc_sync_position()
 {
-  system_convert_array_steps_to_mpos(gc_state.position,sys_position);
+  system_convert_array_steps_to_mpos(gc_state.position,sys_position,0);
 }
 
 

@@ -208,6 +208,9 @@ void report_grbl_settings() {
   #else
     report_util_uint8_setting(32,0);
   #endif
+  #ifdef XY_SKEW_COMPENSATION
+    report_util_float_setting(66,settings.xy_skew_compensation*1000.0,N_DECIMAL_SETTINGVALUE);
+  #endif
   // Print axis settings
   uint8_t idx, set_idx;
   uint8_t val = AXIS_SETTINGS_START_VAL;
@@ -233,7 +236,7 @@ void report_probe_parameters()
   // Report in terms of machine position.
   printPgmString(PSTR("[PRB:"));
   float print_position[N_AXIS];
-  system_convert_array_steps_to_mpos(print_position,sys_probe_position);
+  system_convert_array_steps_to_mpos(print_position,sys_probe_position,0);
   report_util_axis_values(print_position);
   serial_write(':');
   print_uint8_base10(sys.probe_succeeded);
@@ -469,7 +472,7 @@ void report_realtime_status()
   int32_t current_position[N_AXIS]; // Copy current state of the system position variable
   memcpy(current_position,sys_position,sizeof(sys_position));
   float print_position[N_AXIS];
-  system_convert_array_steps_to_mpos(print_position,current_position);
+  system_convert_array_steps_to_mpos(print_position,current_position,0);
 
   // Report current machine state and sub-states
   serial_write('<');

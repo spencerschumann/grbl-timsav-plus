@@ -183,11 +183,8 @@ void system_execute_startup(char *line);
 
 void system_flag_wco_change();
 
-// Returns machine position of axis 'idx'. Must be sent a 'step' array.
-float system_convert_axis_steps_to_mpos(int32_t *steps, uint8_t idx);
-
 // Updates a machine 'position' array based on the 'step' array sent.
-void system_convert_array_steps_to_mpos(float *position, int32_t *steps);
+void system_convert_array_steps_to_mpos(float *position, int32_t *steps, bool absolute);
 
 // CoreXY calculation only. Returns x or y-axis "steps" based on CoreXY motor steps.
 #ifdef COREXY

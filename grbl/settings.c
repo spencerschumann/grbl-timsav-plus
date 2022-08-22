@@ -57,7 +57,8 @@ const __flash settings_t defaults = {\
     .acceleration[Z_AXIS] = DEFAULT_Z_ACCELERATION,
     .max_travel[X_AXIS] = (-DEFAULT_X_MAX_TRAVEL),
     .max_travel[Y_AXIS] = (-DEFAULT_Y_MAX_TRAVEL),
-    .max_travel[Z_AXIS] = (-DEFAULT_Z_MAX_TRAVEL)};
+    .max_travel[Z_AXIS] = (-DEFAULT_Z_MAX_TRAVEL),
+    .xy_skew_compensation = 0.0};
 
 
 // Method to store startup lines into EEPROM
@@ -191,7 +192,13 @@ uint8_t read_global_settings() {
 
 // A helper method to set settings from command line
 uint8_t settings_store_global_setting(uint8_t parameter, float value) {
-  if (value < 0.0) { return(STATUS_NEGATIVE_VALUE); }
+  if (
+    #ifdef XY_SKEW_COMPENSATION
+      (parameter != 66) &&
+    #endif
+    value < 0.0
+  ) { return(STATUS_NEGATIVE_VALUE); }
+  
   if (parameter >= AXIS_SETTINGS_START_VAL) {
     // Store axis configuration. Axis numbering sequence set by AXIS_SETTING defines.
     // NOTE: Ensure the setting index corresponds to the report.c settings printout.
@@ -294,6 +301,11 @@ uint8_t settings_store_global_setting(uint8_t parameter, float value) {
           return(STATUS_SETTING_DISABLED_LASER);
         #endif
         break;
+      #ifdef XY_SKEW_COMPENSATION
+        // The units of the compensation factor is mm in Y per meter in X, to avoid needing a large
+        // number of decimal places in the setting. Convert to meters for internal grbl use.
+        case 66: settings.xy_skew_compensation = value * .001; break;
+      #endif
       default:
         return(STATUS_INVALID_STATEMENT);
     }
